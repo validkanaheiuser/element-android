@@ -92,10 +92,14 @@ jobs:
             echo "Signed: $apk"
           done
 
-      - name: Upload Gplay unsigned APKs
+      - name: Collect signed APKs
+        run: |
+          mkdir -p signed-apks
+          find vector-app/build/outputs/apk/gplay/release -name "*.apk" -exec cp {} signed-apks/ \;
+
+      - name: Upload signed APKs
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: vector-gplay-release-signed
-          path: |
-            vector-app/build/outputs/apk/*/release/*.apk
+          path: signed-apks/
 
