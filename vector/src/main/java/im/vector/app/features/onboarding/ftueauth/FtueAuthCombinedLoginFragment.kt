@@ -26,6 +26,7 @@ import im.vector.app.core.extensions.realignPercentagesToParent
 import im.vector.app.core.extensions.setOnFocusLostListener
 import im.vector.app.core.extensions.setOnImeDoneListener
 import im.vector.app.core.extensions.toReducedUrl
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.databinding.FragmentFtueCombinedLoginBinding
 import im.vector.app.features.VectorFeatures
 import im.vector.app.features.login.LoginMode
@@ -49,6 +50,7 @@ class FtueAuthCombinedLoginFragment :
     @Inject lateinit var loginFieldsValidation: LoginFieldsValidation
     @Inject lateinit var loginErrorParser: LoginErrorParser
     @Inject lateinit var vectorFeatures: VectorFeatures
+    @Inject lateinit var lockedHomeserverStore: LockedHomeserverStore
 
     override fun getBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentFtueCombinedLoginBinding {
         return FragmentFtueCombinedLoginBinding.inflate(inflater, container, false)
@@ -58,7 +60,7 @@ class FtueAuthCombinedLoginFragment :
         super.onViewCreated(view, savedInstanceState)
         setupSubmitButton()
         views.loginRoot.realignPercentagesToParent()
-        views.editServerButton.debouncedClicks { viewModel.handle(OnboardingAction.PostViewEvent(OnboardingViewEvents.EditServerSelection)) }
+        views.editServerButton.isVisible = false
         views.loginPasswordInput.setOnImeDoneListener { submit() }
         views.loginInput.setOnFocusLostListener(viewLifecycleOwner) {
             viewModel.handle(OnboardingAction.UserNameEnteredAction.Login(views.loginInput.content()))
@@ -110,7 +112,9 @@ class FtueAuthCombinedLoginFragment :
         setupUi(state)
         setupAutoFill()
 
-        views.selectedServerName.text = state.selectedHomeserver.userFacingUrl.toReducedUrl()
+        val url = state.selectedHomeserver.userFacingUrl
+        views.selectedServerName.text = lockedHomeserverStore.getServerList()
+                .firstOrNull { it.url == url }?.nickname ?: url.toReducedUrl()
 
         if (state.isLoading) {
             // Ensure password is hidden

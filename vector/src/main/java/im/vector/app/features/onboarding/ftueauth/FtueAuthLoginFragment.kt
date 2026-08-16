@@ -24,6 +24,7 @@ import im.vector.app.R
 import im.vector.app.core.extensions.hideKeyboard
 import im.vector.app.core.extensions.hidePassword
 import im.vector.app.core.extensions.toReducedUrl
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.databinding.FragmentLoginBinding
 import im.vector.app.features.login.LoginMode
 import im.vector.app.features.login.SSORedirectRouterActivity
@@ -47,6 +48,7 @@ import org.matrix.android.sdk.api.failure.isRegistrationDisabled
 import org.matrix.android.sdk.api.failure.isUsernameInUse
 import org.matrix.android.sdk.api.failure.isWeakPassword
 import reactivecircus.flowbinding.android.widget.textChanges
+import javax.inject.Inject
 
 /**
  * In this screen:
@@ -65,6 +67,8 @@ class FtueAuthLoginFragment :
     // Temporary patch for https://github.com/element-hq/riotX-android/issues/1410,
     // waiting for https://github.com/matrix-org/synapse/issues/7576
     private var isNumericOnlyUserIdForbidden = false
+
+    @Inject lateinit var lockedHomeserverStore: im.vector.app.core.homeserver.LockedHomeserverStore
 
     override fun getBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentLoginBinding {
         return FragmentLoginBinding.inflate(inflater, container, false)
@@ -188,7 +192,9 @@ class FtueAuthLoginFragment :
                 ServerType.MatrixOrg -> {
                     views.loginServerIcon.isVisible = true
                     views.loginServerIcon.setImageResource(R.drawable.ic_logo_matrix_org)
-                    views.loginTitle.text = getString(resId, state.selectedHomeserver.userFacingUrl.toReducedUrl())
+                    views.loginTitle.text = getString(resId, lockedHomeserverStore.getServerList()
+                            .firstOrNull { it.url == state.selectedHomeserver.userFacingUrl }?.nickname
+                            ?: state.selectedHomeserver.userFacingUrl.toReducedUrl())
                     views.loginNotice.text = getString(CommonStrings.login_server_matrix_org_text)
                 }
                 ServerType.EMS -> {
@@ -199,7 +205,9 @@ class FtueAuthLoginFragment :
                 }
                 ServerType.Other -> {
                     views.loginServerIcon.isVisible = false
-                    views.loginTitle.text = getString(resId, state.selectedHomeserver.userFacingUrl.toReducedUrl())
+                    views.loginTitle.text = getString(resId, lockedHomeserverStore.getServerList()
+                            .firstOrNull { it.url == state.selectedHomeserver.userFacingUrl }?.nickname
+                            ?: state.selectedHomeserver.userFacingUrl.toReducedUrl())
                     views.loginNotice.text = getString(CommonStrings.login_server_other_text)
                 }
                 ServerType.Unknown -> Unit /* Should not happen */
