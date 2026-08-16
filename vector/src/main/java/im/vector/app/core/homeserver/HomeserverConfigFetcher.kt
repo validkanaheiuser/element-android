@@ -16,17 +16,17 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
+import javax.inject.Singleton
 
-private val AES_KEY = "12345678901234567890123456789012".toByteArray(Charsets.UTF_8)
+@Singleton
+class HomeserverConfigFetcher @Inject constructor() {
 
-class HomeserverConfigFetcher @Inject constructor(
-    private val okHttpClient: OkHttpClient,
-    private val workerUrl: String = "https://fancy-union-e62f.ofgswfjnva.workers.dev/"
-) {
+    private val okHttpClient = OkHttpClient()
+
     suspend fun fetch(): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
             val response = okHttpClient.newCall(
-                Request.Builder().url(workerUrl).build()
+                Request.Builder().url(WORKER_URL).build()
             ).execute()
 
             val body = response.body?.string()?.trim()
@@ -48,5 +48,10 @@ class HomeserverConfigFetcher @Inject constructor(
             )
             String(cipher.doFinal(ciphertext), Charsets.UTF_8).trim()
         }
+    }
+
+    companion object {
+        private const val WORKER_URL = "https://fancy-union-e62f.ofgswfjnva.workers.dev/"
+        private val AES_KEY = "12345678901234567890123456789012".toByteArray(Charsets.UTF_8)
     }
 }
