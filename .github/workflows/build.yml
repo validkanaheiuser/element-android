@@ -73,10 +73,29 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
       - name: Assemble GPlay unsigned apk
         run: ./gradlew clean assembleGplayRelease $CI_GRADLE_ARG_PROPERTIES
+      - name: Generate test signing key
+        run: |
+          keytool -genkey -v -keystore /tmp/release.jks \
+            -alias release -keyalg RSA -keysize 2048 -validity 365 \
+            -dname "CN=ElementTest" -storepass testpass -keypass testpass -noprompt
+
+      - name: Sign release APK
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name "apksigner" -type f | sort -rV | head -1)
+          find vector-app/build/outputs/apk/gplay/release -name "*.apk" | while read apk; do
+            "$APKSIGNER" sign \
+              --ks /tmp/release.jks \
+              --ks-key-alias release \
+              --ks-pass pass:testpass \
+              --key-pass pass:testpass \
+              "$apk"
+            echo "Signed: $apk"
+          done
+
       - name: Upload Gplay unsigned APKs
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: vector-gplay-release-unsigned
+          name: vector-gplay-release-signed
           path: |
             vector-app/build/outputs/apk/*/release/*.apk
 
