@@ -100,12 +100,11 @@ jobs:
           mkdir -p signed-apks
           find vector-app/build/outputs/apk/gplay/release -name "*.apk" -exec cp {} signed-apks/ \;
           gh release delete develop-latest --yes 2>/dev/null || true
-          git tag -f develop-latest
-          git push -f origin develop-latest
           gh release create develop-latest signed-apks/*.apk \
             --title "Latest develop build" \
             --notes "Automated signed APK build from develop branch" \
-            --prerelease
+            --prerelease \
+            --target "$GITHUB_SHA"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
