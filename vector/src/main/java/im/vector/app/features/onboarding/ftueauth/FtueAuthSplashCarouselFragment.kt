@@ -23,6 +23,7 @@ import im.vector.app.core.extensions.incrementByOneAndWrap
 import im.vector.app.core.extensions.setCurrentItem
 import im.vector.app.core.resources.BuildMeta
 import im.vector.app.databinding.FragmentFtueSplashCarouselBinding
+import im.vector.app.features.VectorFeatures
 import im.vector.app.features.onboarding.OnboardingAction
 import im.vector.app.features.onboarding.OnboardingFlow
 import im.vector.app.features.settings.VectorPreferences
@@ -40,6 +41,7 @@ class FtueAuthSplashCarouselFragment :
         AbstractFtueAuthFragment<FragmentFtueSplashCarouselBinding>() {
 
     @Inject lateinit var vectorPreferences: VectorPreferences
+    @Inject lateinit var vectorFeatures: VectorFeatures
     @Inject lateinit var carouselController: SplashCarouselController
     @Inject lateinit var carouselStateFactory: SplashCarouselStateFactory
     @Inject lateinit var buildMeta: BuildMeta
@@ -70,11 +72,15 @@ class FtueAuthSplashCarouselFragment :
 
         carouselController.setData(carouselStateFactory.create())
 
+        val isAlreadyHaveAccountEnabled = vectorFeatures.isOnboardingAlreadyHaveAccountSplashEnabled()
         views.loginSplashSubmit.apply {
-            setText(CommonStrings.login_splash_already_have_account)
+            setText(if (isAlreadyHaveAccountEnabled) CommonStrings.login_splash_create_account else CommonStrings.login_splash_submit)
+            debouncedClicks { splashSubmit(isAlreadyHaveAccountEnabled) }
+        }
+        views.loginSplashAlreadyHaveAccount.apply {
+            isVisible = isAlreadyHaveAccountEnabled
             debouncedClicks { alreadyHaveAnAccount() }
         }
-        views.loginSplashAlreadyHaveAccount.isVisible = false
 
         if (buildMeta.isDebug || vectorPreferences.developerMode()) {
             views.loginSplashVersion.isVisible = true
@@ -120,6 +126,11 @@ class FtueAuthSplashCarouselFragment :
             delay(CAROUSEL_ROTATION_DELAY_MS)
             setCurrentItem(currentItem.incrementByOneAndWrap(max = itemCount - 1), duration = CAROUSEL_TRANSITION_TIME_MS)
         }
+    }
+
+    private fun splashSubmit(isAlreadyHaveAccountEnabled: Boolean) {
+        val getStartedFlow = if (isAlreadyHaveAccountEnabled) OnboardingFlow.SignUp else OnboardingFlow.SignInSignUp
+        viewModel.handle(OnboardingAction.SplashAction.OnGetStarted(onboardingFlow = getStartedFlow))
     }
 
     private fun alreadyHaveAnAccount() {
