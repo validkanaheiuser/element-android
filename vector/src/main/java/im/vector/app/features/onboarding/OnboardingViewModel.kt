@@ -62,6 +62,7 @@ import org.matrix.android.sdk.api.failure.isUnrecognisedCertificate
 import org.matrix.android.sdk.api.network.ssl.Fingerprint
 import org.matrix.android.sdk.api.session.Session
 import org.matrix.android.sdk.api.util.BuildVersionSdkIntProvider
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.features.homeserver.ServerUrlsRepository
 import timber.log.Timber
 import java.util.UUID
@@ -90,6 +91,7 @@ class OnboardingViewModel @AssistedInject constructor(
         private val configureAndStartSessionUseCase: ConfigureAndStartSessionUseCase,
         mdmService: MdmService,
         private val serverUrlsRepository: ServerUrlsRepository,
+        private val lockedHomeserverStore: LockedHomeserverStore,
 ) : VectorViewModel<OnboardingViewState, OnboardingAction, OnboardingViewEvents>(initialState) {
 
     @AssistedFactory
@@ -240,13 +242,12 @@ class OnboardingViewModel @AssistedInject constructor(
     private fun continueToPageAfterSplash(onboardingFlow: OnboardingFlow) {
         when (onboardingFlow) {
             OnboardingFlow.SignUp -> {
-                _viewEvents.post(
-                        if (vectorFeatures.isOnboardingUseCaseEnabled()) {
-                            OnboardingViewEvents.OpenUseCaseSelection
-                        } else {
-                            OnboardingViewEvents.OpenServerSelection
-                        }
-                )
+                // Skip use-case selection; go straight to server/register
+                setState { copy(useCase = FtueUseCase.SKIP) }
+                when (vectorFeatures.isOnboardingCombinedRegisterEnabled()) {
+                    true -> handle(OnboardingAction.HomeServerChange.SelectHomeServer(deeplinkOrDefaultHomeserverUrl()))
+                    false -> _viewEvents.post(OnboardingViewEvents.OpenServerSelection)
+                }
             }
             OnboardingFlow.SignIn -> when {
                 vectorFeatures.isOnboardingCombinedLoginEnabled() -> {
@@ -454,7 +455,10 @@ class OnboardingViewModel @AssistedInject constructor(
         }
     }
 
-    private fun deeplinkOrDefaultHomeserverUrl() = loginConfig?.homeServerUrl?.ensureProtocol() ?: defaultHomeserverUrl
+    private fun deeplinkOrDefaultHomeserverUrl() =
+            loginConfig?.homeServerUrl?.ensureProtocol()
+                    ?: lockedHomeserverStore.getSelectedUrl()?.ensureTrailingSlash()
+                    ?: defaultHomeserverUrl
 
     private fun resetUseCase() {
         setState { copy(useCase = null) }

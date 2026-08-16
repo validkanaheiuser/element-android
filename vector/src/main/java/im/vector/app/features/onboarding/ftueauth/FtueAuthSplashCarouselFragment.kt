@@ -17,8 +17,10 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
 import dagger.hilt.android.AndroidEntryPoint
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.core.extensions.incrementByOneAndWrap
 import im.vector.app.core.extensions.setCurrentItem
 import im.vector.app.core.resources.BuildMeta
@@ -42,6 +44,7 @@ class FtueAuthSplashCarouselFragment :
 
     @Inject lateinit var vectorPreferences: VectorPreferences
     @Inject lateinit var vectorFeatures: VectorFeatures
+    @Inject lateinit var lockedHomeserverStore: LockedHomeserverStore
     @Inject lateinit var carouselController: SplashCarouselController
     @Inject lateinit var carouselStateFactory: SplashCarouselStateFactory
     @Inject lateinit var buildMeta: BuildMeta
@@ -75,11 +78,11 @@ class FtueAuthSplashCarouselFragment :
         val isAlreadyHaveAccountEnabled = vectorFeatures.isOnboardingAlreadyHaveAccountSplashEnabled()
         views.loginSplashSubmit.apply {
             setText(if (isAlreadyHaveAccountEnabled) CommonStrings.login_splash_create_account else CommonStrings.login_splash_submit)
-            debouncedClicks { splashSubmit(isAlreadyHaveAccountEnabled) }
+            debouncedClicks { showServerPickerThen { splashSubmit(isAlreadyHaveAccountEnabled) } }
         }
         views.loginSplashAlreadyHaveAccount.apply {
             isVisible = isAlreadyHaveAccountEnabled
-            debouncedClicks { alreadyHaveAnAccount() }
+            debouncedClicks { showServerPickerThen { alreadyHaveAnAccount() } }
         }
 
         if (buildMeta.isDebug || vectorPreferences.developerMode()) {
@@ -126,6 +129,23 @@ class FtueAuthSplashCarouselFragment :
             delay(CAROUSEL_ROTATION_DELAY_MS)
             setCurrentItem(currentItem.incrementByOneAndWrap(max = itemCount - 1), duration = CAROUSEL_TRANSITION_TIME_MS)
         }
+    }
+
+    private fun showServerPickerThen(onSelected: () -> Unit) {
+        val servers = lockedHomeserverStore.getServerList()
+        if (servers.size <= 1) {
+            servers.firstOrNull()?.let { lockedHomeserverStore.setSelectedUrl(it.url) }
+            onSelected()
+            return
+        }
+        val nicknames = servers.map { it.nickname }.toTypedArray()
+        MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Chọn server")
+                .setItems(nicknames) { _, index ->
+                    lockedHomeserverStore.setSelectedUrl(servers[index].url)
+                    onSelected()
+                }
+                .show()
     }
 
     private fun splashSubmit(isAlreadyHaveAccountEnabled: Boolean) {
