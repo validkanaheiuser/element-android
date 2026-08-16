@@ -33,6 +33,7 @@ import org.matrix.android.sdk.api.session.widgets.model.WidgetType
 import org.matrix.android.sdk.internal.database.model.WellknownIntegrationManagerConfigEntity
 import org.matrix.android.sdk.internal.di.SessionDatabase
 import org.matrix.android.sdk.internal.extensions.observeNotNull
+import org.matrix.android.sdk.internal.session.SessionCoroutineScopeHolder
 import org.matrix.android.sdk.internal.session.SessionScope
 import org.matrix.android.sdk.internal.session.user.accountdata.UpdateUserAccountDataTask
 import org.matrix.android.sdk.internal.session.user.accountdata.UserAccountDataDataSource
@@ -60,7 +61,8 @@ internal class IntegrationManager @Inject constructor(
         @SessionDatabase private val monarchy: Monarchy,
         private val updateUserAccountDataTask: UpdateUserAccountDataTask,
         private val accountDataDataSource: UserAccountDataDataSource,
-        private val widgetFactory: WidgetFactory
+        private val widgetFactory: WidgetFactory,
+        private val sessionCoroutineScopeHolder: SessionCoroutineScopeHolder,
 ) :
         SessionLifecycleObserver {
 
@@ -87,7 +89,7 @@ internal class IntegrationManager @Inject constructor(
     override fun onSessionStarted(session: Session) {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
         // Force-enable integration manager immediately when a session starts
-        session.coroutineScope.launch {
+        sessionCoroutineScopeHolder.scope.launch {
             runCatching { setIntegrationEnabled(true) }
         }
         observeWellknownConfig()
