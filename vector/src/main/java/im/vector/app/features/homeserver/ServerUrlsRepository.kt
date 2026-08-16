@@ -65,7 +65,7 @@ class ServerUrlsRepository @Inject constructor(
      * Return last used homeserver url, or the default one from referrer or the default one from resources.
      */
     fun getLastHomeServerUrl(): String {
-        lockedHomeserverStore.getLockedUrl()?.let { return it }
+        lockedHomeserverStore.getSelectedUrl()?.let { return it }
         return sharedPreferences.getString(
                 HOME_SERVER_URL_PREF,
                 sharedPreferences.getString(

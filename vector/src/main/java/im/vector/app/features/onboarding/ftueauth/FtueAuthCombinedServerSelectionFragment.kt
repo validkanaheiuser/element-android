@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.core.view.isVisible
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import im.vector.app.R
 import im.vector.app.config.Config
@@ -25,6 +26,8 @@ import im.vector.app.core.extensions.realignPercentagesToParent
 import im.vector.app.core.extensions.setOnImeDoneListener
 import im.vector.app.core.extensions.showKeyboard
 import im.vector.app.core.extensions.toReducedUrl
+import im.vector.app.core.homeserver.LockedHomeserverStore
+import im.vector.app.core.homeserver.ServerConfig
 import im.vector.app.core.resources.BuildMeta
 import im.vector.app.core.utils.ensureProtocol
 import im.vector.app.core.utils.ensureTrailingSlash
@@ -45,6 +48,7 @@ import javax.inject.Inject
 class FtueAuthCombinedServerSelectionFragment :
         AbstractFtueAuthFragment<FragmentFtueServerSelectionCombinedBinding>() {
     @Inject lateinit var buildMeta: BuildMeta
+    @Inject lateinit var lockedHomeserverStore: LockedHomeserverStore
 
     override fun getBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentFtueServerSelectionCombinedBinding {
         return FragmentFtueServerSelectionCombinedBinding.inflate(inflater, container, false)
@@ -52,7 +56,37 @@ class FtueAuthCombinedServerSelectionFragment :
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val servers = lockedHomeserverStore.getServerList()
+        if (servers.isNotEmpty()) {
+            if (servers.size == 1) {
+                lockedHomeserverStore.setSelectedUrl(servers[0].url)
+                viewModel.handle(OnboardingAction.HomeServerChange.EditHomeServer(servers[0].url))
+                return
+            }
+            setupServerPicker(servers)
+            return
+        }
+
         setupViews()
+    }
+
+    private fun setupServerPicker(servers: List<ServerConfig>) {
+        val nicknames = servers.map { it.nickname }.toTypedArray()
+        var selectedIndex = servers.indexOfFirst { it.url == lockedHomeserverStore.getSelectedUrl() }.coerceAtLeast(0)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Select Server")
+            .setSingleChoiceItems(nicknames, selectedIndex) { _, which ->
+                selectedIndex = which
+            }
+            .setPositiveButton("Continue") { _, _ ->
+                val selected = servers[selectedIndex]
+                lockedHomeserverStore.setSelectedUrl(selected.url)
+                viewModel.handle(OnboardingAction.HomeServerChange.EditHomeServer(selected.url))
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun setupViews() {

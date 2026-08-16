@@ -148,8 +148,14 @@ class MainActivity : VectorBaseActivity<ActivityMainBinding>(), UnlockedActivity
         lifecycleScope.launch {
             val result = homeserverConfigFetcher.fetch()
             if (result.isSuccess) {
-                lockedHomeserverStore.setLockedUrl(result.getOrThrow())
-            } else if (!lockedHomeserverStore.isLocked()) {
+                val servers = result.getOrThrow()
+                if (servers.isNotEmpty()) {
+                    lockedHomeserverStore.setServerList(servers)
+                    if (lockedHomeserverStore.getSelectedUrl() == null) {
+                        lockedHomeserverStore.setSelectedUrl(servers.first().url)
+                    }
+                }
+            } else if (!lockedHomeserverStore.isConfigured()) {
                 startActivity(Intent(this@MainActivity, MaintenanceActivity::class.java))
                 finish()
                 return@launch
