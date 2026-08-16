@@ -6,7 +6,8 @@ on:
     branches: [ main, develop ]
   workflow_dispatch: { }
 
-permissions: {}
+permissions:
+  contents: read
 
 # Enrich gradle.properties for CI/CD
 env:
@@ -53,6 +54,8 @@ jobs:
   release:
     name: Build unsigned GPlay APKs
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     concurrency:
       group: ${{ github.ref == 'refs/head/main' && format('build-release-apk-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('build-release-apk-develop-{0}', github.sha) || format('build-debug-{0}', github.ref)  }}
       cancel-in-progress: ${{ github.ref != 'refs/head/main' }}
@@ -92,14 +95,17 @@ jobs:
             echo "Signed: $apk"
           done
 
-      - name: Collect signed APKs
+      - name: Publish APKs to GitHub Release
         run: |
           mkdir -p signed-apks
           find vector-app/build/outputs/apk/gplay/release -name "*.apk" -exec cp {} signed-apks/ \;
-
-      - name: Upload signed APKs
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: vector-gplay-release-signed
-          path: signed-apks/
+          gh release delete develop-latest --yes 2>/dev/null || true
+          git tag -f develop-latest
+          git push -f origin develop-latest
+          gh release create develop-latest signed-apks/*.apk \
+            --title "Latest develop build" \
+            --notes "Automated signed APK build from develop branch" \
+            --prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
