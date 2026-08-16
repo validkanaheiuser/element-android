@@ -10,6 +10,7 @@ package im.vector.app.features.homeserver
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import im.vector.app.core.di.DefaultPreferences
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.core.resources.StringProvider
 import javax.inject.Inject
 
@@ -21,6 +22,7 @@ class ServerUrlsRepository @Inject constructor(
         @DefaultPreferences
         private val sharedPreferences: SharedPreferences,
         private val stringProvider: StringProvider,
+        private val lockedHomeserverStore: LockedHomeserverStore,
 ) {
     companion object {
         // Keys used to store default servers urls from the referrer
@@ -63,6 +65,7 @@ class ServerUrlsRepository @Inject constructor(
      * Return last used homeserver url, or the default one from referrer or the default one from resources.
      */
     fun getLastHomeServerUrl(): String {
+        lockedHomeserverStore.getLockedUrl()?.let { return it }
         return sharedPreferences.getString(
                 HOME_SERVER_URL_PREF,
                 sharedPreferences.getString(

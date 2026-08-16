@@ -38,6 +38,7 @@ import org.matrix.android.sdk.internal.session.user.accountdata.UpdateUserAccoun
 import org.matrix.android.sdk.internal.session.user.accountdata.UserAccountDataDataSource
 import org.matrix.android.sdk.internal.session.widgets.helper.WidgetFactory
 import org.matrix.android.sdk.internal.session.widgets.helper.extractWidgetSequence
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -85,6 +86,10 @@ internal class IntegrationManager @Inject constructor(
 
     override fun onSessionStarted(session: Session) {
         lifecycleRegistry.currentState = Lifecycle.State.STARTED
+        // Force-enable integration manager immediately when a session starts
+        session.coroutineScope.launch {
+            runCatching { setIntegrationEnabled(true) }
+        }
         observeWellknownConfig()
         accountDataDataSource
                 .getLiveAccountDataEvent(UserAccountDataTypes.TYPE_ALLOWED_WIDGETS)
@@ -131,18 +136,15 @@ internal class IntegrationManager @Inject constructor(
     /**
      * Returns false if the user as disabled integration manager feature.
      */
-    fun isIntegrationEnabled(): Boolean {
-        val integrationProvisioningData = accountDataDataSource.getAccountDataEvent(UserAccountDataTypes.TYPE_INTEGRATION_PROVISIONING)
-        val integrationProvisioningContent = integrationProvisioningData?.content?.toModel<IntegrationProvisioningContent>()
-        return integrationProvisioningContent?.enabled ?: false
-    }
+    fun isIntegrationEnabled(): Boolean = true
 
     suspend fun setIntegrationEnabled(enable: Boolean) {
-        val isIntegrationEnabled = isIntegrationEnabled()
-        if (enable == isIntegrationEnabled) {
-            return
-        }
-        val integrationProvisioningContent = IntegrationProvisioningContent(enabled = enable)
+        if (!enable) return // Integration cannot be disabled
+        val isIntegrationEnabled = accountDataDataSource
+                .getAccountDataEvent(UserAccountDataTypes.TYPE_INTEGRATION_PROVISIONING)
+                ?.content?.toModel<IntegrationProvisioningContent>()?.enabled ?: false
+        if (isIntegrationEnabled) return
+        val integrationProvisioningContent = IntegrationProvisioningContent(enabled = true)
         val params = UpdateUserAccountDataTask.IntegrationProvisioning(integrationProvisioningContent = integrationProvisioningContent)
         return updateUserAccountDataTask.execute(params)
     }

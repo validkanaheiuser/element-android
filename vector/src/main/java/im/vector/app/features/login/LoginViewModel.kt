@@ -42,6 +42,7 @@ import org.matrix.android.sdk.api.auth.wellknown.WellknownResult
 import org.matrix.android.sdk.api.failure.Failure
 import org.matrix.android.sdk.api.failure.MatrixIdFailure
 import org.matrix.android.sdk.api.session.Session
+import im.vector.app.features.homeserver.ServerUrlsRepository
 import timber.log.Timber
 import java.util.concurrent.CancellationException
 
@@ -58,6 +59,7 @@ class LoginViewModel @AssistedInject constructor(
         private val stringProvider: StringProvider,
         private val homeServerHistoryService: HomeServerHistoryService,
         private val configureAndStartSessionUseCase: ConfigureAndStartSessionUseCase,
+        private val serverUrlsRepository: ServerUrlsRepository,
 ) : VectorViewModel<LoginViewState, LoginAction, LoginViewEvents>(initialState) {
 
     @AssistedFactory
@@ -431,19 +433,10 @@ class LoginViewModel @AssistedInject constructor(
 
     private fun handleUpdateServerType(action: LoginAction.UpdateServerType) {
         setState {
-            copy(
-                    serverType = action.serverType
-            )
+            copy(serverType = action.serverType)
         }
-
-        when (action.serverType) {
-            ServerType.Unknown -> Unit /* Should not happen */
-            ServerType.MatrixOrg ->
-                // Request login flow here
-                handle(LoginAction.UpdateHomeServer(matrixOrgUrl))
-            ServerType.EMS,
-            ServerType.Other -> _viewEvents.post(LoginViewEvents.OnServerSelectionDone(action.serverType))
-        }
+        // Homeserver is locked — always use the pre-fetched locked URL; never show server selection
+        handle(LoginAction.UpdateHomeServer(serverUrlsRepository.getLastHomeServerUrl()))
     }
 
     private fun handleInitWith(action: LoginAction.InitWith) {

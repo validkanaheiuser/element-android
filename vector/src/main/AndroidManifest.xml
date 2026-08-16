@@ -104,6 +104,11 @@
             android:name=".features.MainActivity"
             android:theme="@style/Theme.Vector.Launcher" />
 
+        <activity
+            android:name=".features.maintenance.MaintenanceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Vector.Light" />
+
         <activity android:name=".features.home.HomeActivity" />
 
         <activity

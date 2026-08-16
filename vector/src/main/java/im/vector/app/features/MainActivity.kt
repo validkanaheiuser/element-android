@@ -26,8 +26,11 @@ import im.vector.app.core.extensions.vectorStore
 import im.vector.app.core.platform.VectorBaseActivity
 import im.vector.app.core.utils.deleteAllFiles
 import im.vector.app.databinding.ActivityMainBinding
+import im.vector.app.core.homeserver.HomeserverConfigFetcher
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.features.analytics.VectorAnalytics
 import im.vector.app.features.analytics.plan.ViewRoom
+import im.vector.app.features.maintenance.MaintenanceActivity
 import im.vector.app.features.home.HomeActivity
 import im.vector.app.features.home.ShortcutsHandler
 import im.vector.app.features.home.room.detail.RoomDetailActivity
@@ -136,20 +139,33 @@ class MainActivity : VectorBaseActivity<ActivityMainBinding>(), UnlockedActivity
     @Inject lateinit var popupAlertManager: PopupAlertManager
     @Inject lateinit var vectorAnalytics: VectorAnalytics
     @Inject lateinit var lockScreenKeyRepository: LockScreenKeyRepository
+    @Inject lateinit var homeserverConfigFetcher: HomeserverConfigFetcher
+    @Inject lateinit var lockedHomeserverStore: LockedHomeserverStore
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        shortcutsHandler.updateShortcutsWithPreviousIntent()
+        lifecycleScope.launch {
+            val result = homeserverConfigFetcher.fetch()
+            if (result.isSuccess) {
+                lockedHomeserverStore.setLockedUrl(result.getOrThrow())
+            } else if (!lockedHomeserverStore.isLocked()) {
+                startActivity(Intent(this@MainActivity, MaintenanceActivity::class.java))
+                finish()
+                return@launch
+            }
 
-        startAppViewModel.onEach {
-            renderState(it)
-        }
-        startAppViewModel.observeViewEvents {
-            handleViewEvents(it)
-        }
+            shortcutsHandler.updateShortcutsWithPreviousIntent()
 
-        startAppViewModel.handle(StartAppAction.StartApp)
+            startAppViewModel.onEach {
+                renderState(it)
+            }
+            startAppViewModel.observeViewEvents {
+                handleViewEvents(it)
+            }
+
+            startAppViewModel.handle(StartAppAction.StartApp)
+        }
     }
 
     private fun renderState(state: StartAppViewState) {

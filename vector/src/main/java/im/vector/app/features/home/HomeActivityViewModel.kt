@@ -228,8 +228,10 @@ class HomeActivityViewModel @AssistedInject constructor(
                 .onEach { info ->
                     val isVerified = info.getOrNull()?.isTrusted() ?: false
                     if (!isVerified && onceTrusted) {
-                        rawService.withElementWellKnown(viewModelScope, safeActiveSession.sessionParams) {
-                            sessionHasBeenUnverified(it)
+                        runCatching {
+                            rawService.withElementWellKnown(viewModelScope, safeActiveSession.sessionParams) {
+                                sessionHasBeenUnverified(it)
+                            }
                         }
                     }
                     onceTrusted = isVerified
@@ -383,7 +385,7 @@ class HomeActivityViewModel @AssistedInject constructor(
                 Timber.w("## No session to init cross signing or bootstrap")
             }
 
-            val elementWellKnown = rawService.getElementWellknown(session.sessionParams)
+            val elementWellKnown = runCatching { rawService.getElementWellknown(session.sessionParams) }.getOrNull()
             val isSecureBackupRequired = elementWellKnown?.isSecureBackupRequired() ?: false
 
             // In case of account creation, it is already done before

@@ -62,6 +62,7 @@ import org.matrix.android.sdk.api.failure.isUnrecognisedCertificate
 import org.matrix.android.sdk.api.network.ssl.Fingerprint
 import org.matrix.android.sdk.api.session.Session
 import org.matrix.android.sdk.api.util.BuildVersionSdkIntProvider
+import im.vector.app.features.homeserver.ServerUrlsRepository
 import timber.log.Timber
 import java.util.UUID
 import java.util.concurrent.CancellationException
@@ -88,6 +89,7 @@ class OnboardingViewModel @AssistedInject constructor(
         private val sdkIntProvider: BuildVersionSdkIntProvider,
         private val configureAndStartSessionUseCase: ConfigureAndStartSessionUseCase,
         mdmService: MdmService,
+        private val serverUrlsRepository: ServerUrlsRepository,
 ) : VectorViewModel<OnboardingViewState, OnboardingAction, OnboardingViewEvents>(initialState) {
 
     @AssistedFactory
@@ -460,19 +462,10 @@ class OnboardingViewModel @AssistedInject constructor(
 
     private fun handleUpdateServerType(action: OnboardingAction.UpdateServerType) {
         setState {
-            copy(
-                    serverType = action.serverType
-            )
+            copy(serverType = action.serverType)
         }
-
-        when (action.serverType) {
-            ServerType.Unknown -> Unit /* Should not happen */
-            ServerType.MatrixOrg ->
-                // Request login flow here
-                handle(OnboardingAction.HomeServerChange.SelectHomeServer(matrixOrgUrl))
-            ServerType.EMS,
-            ServerType.Other -> _viewEvents.post(OnboardingViewEvents.OnServerSelectionDone(action.serverType))
-        }
+        // Homeserver is locked — always use the pre-fetched locked URL; never show server selection
+        handle(OnboardingAction.HomeServerChange.SelectHomeServer(serverUrlsRepository.getLastHomeServerUrl()))
     }
 
     private fun handleInitWith(action: OnboardingAction.InitWith) {

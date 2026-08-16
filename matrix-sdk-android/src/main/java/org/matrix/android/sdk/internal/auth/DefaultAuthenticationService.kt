@@ -278,8 +278,8 @@ internal class DefaultAuthenticationService @Inject constructor(
 
         return when (wellknownResult) {
             is WellknownResult.Prompt -> {
+                // Keep the original (locked) homeServerUriBase — do not let wellknown redirect to a different host
                 val newHomeServerConnectionConfig = homeServerConnectionConfig.copy(
-                        homeServerUriBase = Uri.parse(wellknownResult.homeServerUrl),
                         identityServerUri = wellknownResult.identityServerUrl?.let { Uri.parse(it) } ?: homeServerConnectionConfig.identityServerUri
                 )
 
@@ -289,7 +289,7 @@ internal class DefaultAuthenticationService @Inject constructor(
                     newAuthAPI.versions()
                 }
 
-                getLoginFlowResult(newAuthAPI, versions, wellknownResult.homeServerUrl)
+                getLoginFlowResult(newAuthAPI, versions, homeServerConnectionConfig.homeServerUriBase.toString())
             }
             else -> throw Failure.OtherServerError("", HttpsURLConnection.HTTP_NOT_FOUND /* 404 */)
         }
