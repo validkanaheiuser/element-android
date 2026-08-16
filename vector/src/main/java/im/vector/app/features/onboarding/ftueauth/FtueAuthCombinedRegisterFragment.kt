@@ -35,6 +35,7 @@ import im.vector.app.core.extensions.realignPercentagesToParent
 import im.vector.app.core.extensions.setOnFocusLostListener
 import im.vector.app.core.extensions.setOnImeDoneListener
 import im.vector.app.core.extensions.toReducedUrl
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.core.resources.BuildMeta
 import im.vector.app.core.utils.openApplicationStore
 import im.vector.app.core.utils.openUrlInChromeCustomTab
@@ -67,6 +68,7 @@ private const val MINIMUM_PASSWORD_LENGTH = 8
 class FtueAuthCombinedRegisterFragment :
         AbstractSSOFtueAuthFragment<FragmentFtueCombinedRegisterBinding>() {
     @Inject lateinit var buildMeta: BuildMeta
+    @Inject lateinit var lockedHomeserverStore: LockedHomeserverStore
 
     override fun getBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentFtueCombinedRegisterBinding {
         return FragmentFtueCombinedRegisterBinding.inflate(inflater, container, false)
@@ -76,7 +78,7 @@ class FtueAuthCombinedRegisterFragment :
         super.onViewCreated(view, savedInstanceState)
         setupSubmitButton()
         views.createAccountRoot.realignPercentagesToParent()
-        views.editServerButton.debouncedClicks { viewModel.handle(OnboardingAction.PostViewEvent(OnboardingViewEvents.EditServerSelection)) }
+        views.editServerButton.isVisible = false
         views.createAccountPasswordInput.setOnImeDoneListener {
             if (canSubmit(views.createAccountInput.content(), views.createAccountPasswordInput.content())) {
                 submit()
@@ -190,7 +192,9 @@ class FtueAuthCombinedRegisterFragment :
     }
 
     private fun setupUi(state: OnboardingViewState) {
-        val serverName = state.selectedHomeserver.userFacingUrl.toReducedUrl()
+        val url = state.selectedHomeserver.userFacingUrl
+        val serverName = lockedHomeserverStore.getServerList()
+                .firstOrNull { it.url == url }?.nickname ?: url.toReducedUrl()
         views.selectedServerName.text = serverName
 
         if (state.isLoading) {
