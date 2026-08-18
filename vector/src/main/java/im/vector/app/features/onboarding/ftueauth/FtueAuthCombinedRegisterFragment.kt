@@ -193,7 +193,8 @@ class FtueAuthCombinedRegisterFragment :
 
     private fun setupUi(state: OnboardingViewState) {
         val url = state.selectedHomeserver.userFacingUrl
-        views.selectedServerName.text = lockedHomeserverStore.nicknameFor(url) ?: url.toReducedUrl()
+        val serverName = lockedHomeserverStore.nicknameFor(url) ?: url.toReducedUrl()
+        views.selectedServerName.text = serverName
 
         if (state.isLoading) {
             // Ensure password is hidden
