@@ -113,8 +113,7 @@ class FtueAuthCombinedLoginFragment :
         setupAutoFill()
 
         val url = state.selectedHomeserver.userFacingUrl
-        views.selectedServerName.text = lockedHomeserverStore.getServerList()
-                .firstOrNull { it.url == url }?.nickname ?: url.toReducedUrl()
+        views.selectedServerName.text = lockedHomeserverStore.nicknameFor(url) ?: url.toReducedUrl()
 
         if (state.isLoading) {
             // Ensure password is hidden

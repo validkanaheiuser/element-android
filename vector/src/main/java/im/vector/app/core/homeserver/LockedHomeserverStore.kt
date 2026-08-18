@@ -40,6 +40,23 @@ class LockedHomeserverStore @Inject constructor(
         sharedPreferences.edit().putString(KEY_SERVER_LIST, arr.toString()).apply()
     }
 
+    /**
+     * Returns the configured nickname for the given homeserver URL.
+     * URLs are compared ignoring scheme, case and trailing slashes, since the
+     * runtime homeserver URL can differ cosmetically from the stored config URL.
+     */
+    fun nicknameFor(url: String?): String? {
+        if (url.isNullOrBlank()) return null
+        val target = url.normalizedForComparison()
+        return getServerList().firstOrNull { it.url.normalizedForComparison() == target }?.nickname
+    }
+
+    private fun String.normalizedForComparison(): String = trim()
+            .lowercase()
+            .removePrefix("https://")
+            .removePrefix("http://")
+            .trimEnd('/')
+
     fun getSelectedUrl(): String? = sharedPreferences.getString(KEY_SELECTED_URL, null)
 
     fun setSelectedUrl(url: String) {
