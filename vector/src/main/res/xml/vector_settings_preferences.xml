@@ -113,10 +113,11 @@
             android:title="@string/settings_show_read_receipts" />
 
         <im.vector.app.core.preference.VectorSwitchPreference
-            android:defaultValue="true"
+            android:defaultValue="false"
             android:key="SETTINGS_SHOW_REDACTED_KEY"
             android:summary="@string/settings_show_redacted_summary"
-            android:title="@string/settings_show_redacted" />
+            android:title="@string/settings_show_redacted"
+            app:isPreferenceVisible="false" />
 
         <im.vector.app.core.preference.VectorSwitchPreference
             android:defaultValue="true"
