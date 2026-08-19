@@ -241,7 +241,7 @@ class PermalinkHandler @Inject constructor(
     }
 
     companion object {
-        const val MATRIX_TO_CUSTOM_SCHEME_URL_BASE = "element://"
+        const val MATRIX_TO_CUSTOM_SCHEME_URL_BASE = "aero://"
         const val ROOM_LINK_PREFIX = "${MATRIX_TO_CUSTOM_SCHEME_URL_BASE}room/"
         const val USER_LINK_PREFIX = "${MATRIX_TO_CUSTOM_SCHEME_URL_BASE}user/"
     }
