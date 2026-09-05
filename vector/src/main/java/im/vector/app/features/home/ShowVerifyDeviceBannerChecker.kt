@@ -18,14 +18,9 @@ class ShowVerifyDeviceBannerChecker @Inject constructor() {
         )
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
+    @Suppress("UNUSED_PARAMETER")
     fun canShowVerifyDeviceBanner(userId: String): Boolean {
-        val sha256 = MessageDigest.getInstance("SHA-256")
-        val hashedDomain = userId.getServerName()
-                .split(".")
-                .takeLast(2)
-                .joinToString(".")
-                .let { sha256.digest(it.toByteArray()).toHexString() }
-        return hashedDomain !in EXCLUDED_HASHED_DOMAINS
+        // The unverified-device banner is not shown in this build.
+        return false
     }
 }

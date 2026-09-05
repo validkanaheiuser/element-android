@@ -96,20 +96,8 @@ class HomeDrawerFragment :
             }
         }
 
-        views.homeDrawerInviteFriendButton.debouncedClicks {
-            permalinkFactory.createPermalinkOfCurrentUser()?.let { permalink ->
-                analyticsTracker.screen(MobileScreen(screenName = MobileScreen.ScreenName.InviteFriends))
-                val text = getString(CommonStrings.invite_friends_text, permalink)
-
-                startSharePlainTextIntent(
-                        context = requireContext(),
-                        activityResultLauncher = null,
-                        chooserTitle = getString(CommonStrings.invite_friends),
-                        text = text,
-                        extraTitle = getString(CommonStrings.invite_friends_rich_title)
-                )
-            }
-        }
+        // "Invite friends" is not offered in this build.
+        views.homeDrawerInviteFriendButton.isVisible = false
 
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val systemBars = insets.getInsets(

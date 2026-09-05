@@ -304,27 +304,11 @@ class RoomProfileController @Inject constructor(
         )
 
         // Advanced
-        buildProfileSection(stringProvider.getString(CommonStrings.room_settings_category_advanced_title))
-
-        buildProfileAction(
-                id = "alias",
-                title = stringProvider.getString(CommonStrings.room_settings_alias_title),
-                subtitle = stringProvider.getString(CommonStrings.room_settings_alias_subtitle),
-                divider = true,
-                editable = true,
-                action = { callback?.onRoomAliasesClicked() }
-        )
-
-        buildProfileAction(
-                id = "permissions",
-                title = stringProvider.getString(CommonStrings.room_settings_permissions_title),
-                subtitle = stringProvider.getString(CommonStrings.room_settings_permissions_subtitle),
-                divider = vectorPreferences.developerMode(),
-                editable = true,
-                action = { callback?.onRoomPermissionsClicked() }
-        )
-
+        // Room addresses and room permissions are not exposed in this build. What remains under Advanced
+        // is developer-only, so the section header is drawn only when developer mode is on.
         if (vectorPreferences.developerMode()) {
+            buildProfileSection(stringProvider.getString(CommonStrings.room_settings_category_advanced_title))
+
             buildProfileAction(
                     id = "roomId",
                     title = stringProvider.getString(CommonStrings.room_settings_room_internal_id),

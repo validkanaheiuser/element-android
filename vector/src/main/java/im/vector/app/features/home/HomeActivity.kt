@@ -620,14 +620,6 @@ class HomeActivity :
 
     override fun handleMenuItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.menu_home_suggestion -> {
-                bugReporter.openBugReportScreen(this, ReportType.SUGGESTION)
-                true
-            }
-            R.id.menu_home_report_bug -> {
-                bugReporter.openBugReportScreen(this, ReportType.BUG_REPORT)
-                true
-            }
             R.id.menu_home_init_sync_legacy -> {
                 // Configure the SDK
                 initialSyncStrategy = InitialSyncStrategy.Legacy
@@ -654,10 +646,6 @@ class HomeActivity :
                 showLayoutSettings()
                 true
             }
-            R.id.menu_home_invite_friends -> {
-                launchInviteFriends()
-                true
-            }
             R.id.menu_home_qr -> {
                 launchQrCode()
                 true
@@ -668,21 +656,6 @@ class HomeActivity :
 
     private fun launchQrCode() {
         startActivity(UserCodeActivity.newIntent(this, sharedActionViewModel.session.myUserId))
-    }
-
-    private fun launchInviteFriends() {
-        activeSessionHolder.getSafeActiveSession()?.permalinkService()?.createPermalink(sharedActionViewModel.session.myUserId)?.let { permalink ->
-            analyticsTracker.screen(MobileScreen(screenName = MobileScreen.ScreenName.InviteFriends))
-            val text = getString(CommonStrings.invite_friends_text, permalink)
-
-            startSharePlainTextIntent(
-                    context = this,
-                    activityResultLauncher = null,
-                    chooserTitle = getString(CommonStrings.invite_friends),
-                    text = text,
-                    extraTitle = getString(CommonStrings.invite_friends_rich_title)
-            )
-        }
     }
 
     @Suppress("OVERRIDE_DEPRECATION")
