@@ -19,6 +19,7 @@ import im.vector.app.core.resources.BuildMeta
 import im.vector.app.core.resources.StringProvider
 import im.vector.app.features.VectorFeatures
 import im.vector.app.features.home.ShortcutsHandler
+import im.vector.app.core.homeserver.LockedHomeserverStore
 import im.vector.app.features.homeserver.ServerUrlsRepository
 import im.vector.app.features.themes.ThemeUtils
 import im.vector.lib.core.utils.timer.Clock
@@ -322,6 +323,11 @@ class VectorPreferences @Inject constructor(
         // homeserver urls
         keysToKeep.add(ServerUrlsRepository.HOME_SERVER_URL_PREF)
         keysToKeep.add(ServerUrlsRepository.IDENTITY_SERVER_URL_PREF)
+
+        // The locked homeserver configuration. Wiping it on logout leaves the app with no server to log back
+        // into until the remote config endpoint answers again, which turns any sign-out into a dead end.
+        keysToKeep.add(LockedHomeserverStore.KEY_SERVER_LIST)
+        keysToKeep.add(LockedHomeserverStore.KEY_SELECTED_URL)
 
         // theme
         keysToKeep.add(ThemeUtils.APPLICATION_THEME_KEY)

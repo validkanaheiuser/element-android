@@ -47,7 +47,12 @@ class VectorFileLogger @Inject constructor(
     }
 
     private val fileHandler: FileHandler?
-    private val cacheDirectory = File(context.cacheDir, "logs")
+
+    // Deliberately NOT under cacheDir. Signing out runs deleteAllFiles(cacheDir) as part of its cleanup, so
+    // logs kept there were wiped by the very event they were meant to explain, and the OS is free to evict
+    // them at any time under storage pressure. filesDir survives both.
+    private val logDirectory = File(context.filesDir, "logs")
+    private val legacyCacheLogDirectory = File(context.cacheDir, "logs")
     private var fileNamePrefix = "logs"
 
     private val prioPrefixes = mapOf(
@@ -60,18 +65,21 @@ class VectorFileLogger @Inject constructor(
     )
 
     init {
-        if (!cacheDirectory.exists()) {
-            cacheDirectory.mkdirs()
+        if (!logDirectory.exists()) {
+            logDirectory.mkdirs()
         }
 
         for (i in 0..15) {
-            val file = File(cacheDirectory, "elementLogs.${i}.txt")
+            val file = File(logDirectory, "elementLogs.${i}.txt")
             tryOrNull { file.delete() }
         }
 
+        // Drop whatever the previous versions left behind in the cache directory.
+        tryOrNull { legacyCacheLogDirectory.deleteRecursively() }
+
         fileHandler = tryOrNull("Failed to initialize FileLogger") {
             FileHandler(
-                    cacheDirectory.absolutePath + "/" + fileNamePrefix + ".%g.txt",
+                    logDirectory.absolutePath + "/" + fileNamePrefix + ".%g.txt",
                     maxLogSizeByte,
                     logRotationCount
             )
@@ -112,7 +120,7 @@ class VectorFileLogger @Inject constructor(
                     ?.flush()
                     ?.let { 0 until logRotationCount }
                     ?.mapNotNull { index ->
-                        File(cacheDirectory, "$fileNamePrefix.${index}.txt")
+                        File(logDirectory, "$fileNamePrefix.${index}.txt")
                                 .takeIf { it.exists() }
                     }
         }

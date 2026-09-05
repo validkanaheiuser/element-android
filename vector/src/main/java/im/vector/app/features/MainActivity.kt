@@ -155,7 +155,9 @@ class MainActivity : VectorBaseActivity<ActivityMainBinding>(), UnlockedActivity
                         lockedHomeserverStore.setSelectedUrl(servers.first().url)
                     }
                 }
-            } else if (!lockedHomeserverStore.isConfigured()) {
+            } else if (!lockedHomeserverStore.isConfigured() && !activeSessionHolder.hasActiveSession()) {
+                // Only block the app when there is genuinely nowhere to go. A user who is already signed in
+                // must never be locked out of their own session because a third party config endpoint is down.
                 startActivity(Intent(this@MainActivity, MaintenanceActivity::class.java))
                 finish()
                 return@launch

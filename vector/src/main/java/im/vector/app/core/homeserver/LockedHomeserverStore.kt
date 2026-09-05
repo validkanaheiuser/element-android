@@ -66,7 +66,9 @@ class LockedHomeserverStore @Inject constructor(
     fun isConfigured(): Boolean = getServerList().isNotEmpty()
 
     companion object {
-        private const val KEY_SERVER_LIST = "server_list_json"
-        private const val KEY_SELECTED_URL = "selected_homeserver_url"
+        // Public so VectorPreferences can keep them out of the logout wipe: losing them strands the user on
+        // the maintenance screen with no way back to a login form until the remote config can be fetched again.
+        const val KEY_SERVER_LIST = "server_list_json"
+        const val KEY_SELECTED_URL = "selected_homeserver_url"
     }
 }
