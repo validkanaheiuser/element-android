@@ -10,7 +10,7 @@ permissions: {}
 
 # Enrich gradle.properties for CI/CD
 env:
-  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx5120m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:MaxMetaspaceSize=1g" -Dkotlin.daemon.jvm.options="-Xmx2560m" -Dkotlin.incremental=false
+  GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx6144m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:MaxMetaspaceSize=1g" -Dkotlin.daemon.jvm.options="-Xmx2560m" -Dkotlin.incremental=false
   CI_GRADLE_ARG_PROPERTIES: --stacktrace -PpreDexEnable=false --max-workers 2 --no-daemon
 
 jobs:
@@ -109,6 +109,29 @@ jobs:
           FIRST_APK=$(find vector-app/build/outputs/apk/gplay/release -name "*.apk" | head -1)
           "$APKSIGNER" verify --print-certs "$FIRST_APK" | grep -i "SHA-256 digest"
 
+      # The Play Store takes an .aab, and an .aab cannot be signed after the fact the way an APK can -
+      # apksigner does not handle bundles. So Gradle signs this one directly, using the same keystore the
+      # APKs above were signed with. Runs while /tmp/release.jks is still on the runner.
+      - name: Build signed AAB for Play
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          ./gradlew :vector-app:bundleGplayRelease $CI_GRADLE_ARG_PROPERTIES \
+            -Psigning.element.storePath=/tmp/release.jks \
+            -Psigning.element.storePassword="$RELEASE_KEYSTORE_PASSWORD" \
+            -Psigning.element.keyId="$RELEASE_KEY_ALIAS" \
+            -Psigning.element.keyPassword="$RELEASE_KEY_PASSWORD"
+          mkdir -p signed-bundle
+          find vector-app/build/outputs/bundle -name "*.aab" -exec cp {} signed-bundle/aero-gplay-release.aab \;
+          ls -l signed-bundle/
+          # An unsigned bundle carries no META-INF signature block; fail loudly rather than ship one.
+          if ! unzip -l signed-bundle/aero-gplay-release.aab | grep -qE "META-INF/.*[.](RSA|DSA|EC)$"; then
+            echo "::error::The AAB came out unsigned - check the signing properties."
+            exit 1
+          fi
+
       - name: Remove the signing key from the runner
         if: always()
         run: rm -f /tmp/release.jks
@@ -149,4 +172,9 @@ jobs:
           name: vector-gplay-x86-release-unsigned.apk
           path: signed-apks/vector-gplay-x86-release-unsigned.apk
           if-no-files-found: error
-
+      - name: Upload AAB for Play
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: aero-gplay-release.aab
+          path: signed-bundle/aero-gplay-release.aab
+          if-no-files-found: error

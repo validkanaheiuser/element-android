@@ -177,8 +177,11 @@ android {
         splits {
             // Configures multiple APKs based on ABI.
             abi {
-                // Enables building multiple APKs per ABI.
-                enable true
+                // Enabled for APK builds only. With splits on, R8 emits one shrunk resource set per ABI and
+                // the bundle pipeline refuses them: "Multiple shrunk-resources files found"
+                // (https://issuetracker.google.com/402800800). A bundle ships every ABI anyway and Play does
+                // the splitting itself, so it is turned off whenever a bundle task was asked for.
+                enable !gradle.startParameter.taskNames.any { it.toLowerCase().contains("bundle") }
 
                 // By default all ABIs are included, so use reset() and include to specify that we only
                 // want APKs for armeabi-v7a, x86, arm64-v8a and x86_64.
@@ -265,7 +268,13 @@ android {
                 optimizeCode true
                 proguardFiles 'proguard-rules.pro'
             }
-            // signingConfig signingConfigs.release
+            // Applied only when a real keystore is actually present, so a developer without one can still
+            // build (they just get unsigned output). CI supplies it with
+            // -Psigning.element.storePath=... and the matching password properties.
+            // Required for bundles: an .aab cannot be signed after the fact with apksigner.
+            if (file(project.property("signing.element.storePath")).exists()) {
+                signingConfig signingConfigs.release
+            }
         }
 
         nightly {
