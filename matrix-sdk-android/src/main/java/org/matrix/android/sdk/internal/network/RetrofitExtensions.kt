@@ -56,24 +56,29 @@ internal suspend fun okhttp3.Call.awaitResponse(): okhttp3.Response {
  * Convert a retrofit Response to a Failure, and eventually parse errorBody to convert it to a [MatrixError].
  */
 internal fun <T> Response<T>.toFailure(globalErrorReceiver: GlobalErrorReceiver?): Failure {
-    return toFailure(errorBody(), code(), globalErrorReceiver)
+    return toFailure(errorBody(), code(), globalErrorReceiver, raw().request.url.encodedPath)
 }
 
 /**
  * Convert a HttpException to a Failure, and eventually parse errorBody to convert it to a [MatrixError].
  */
 internal fun HttpException.toFailure(globalErrorReceiver: GlobalErrorReceiver?): Failure {
-    return toFailure(response()?.errorBody(), code(), globalErrorReceiver)
+    return toFailure(response()?.errorBody(), code(), globalErrorReceiver, response()?.raw()?.request?.url?.encodedPath)
 }
 
 /**
  * Convert a okhttp3 Response to a Failure, and eventually parse errorBody to convert it to a [MatrixError].
  */
 internal fun okhttp3.Response.toFailure(globalErrorReceiver: GlobalErrorReceiver?): Failure {
-    return toFailure(body, code, globalErrorReceiver)
+    return toFailure(body, code, globalErrorReceiver, request.url.encodedPath)
 }
 
-private fun toFailure(errorBody: ResponseBody?, httpCode: Int, globalErrorReceiver: GlobalErrorReceiver?): Failure {
+private fun toFailure(
+        errorBody: ResponseBody?,
+        httpCode: Int,
+        globalErrorReceiver: GlobalErrorReceiver?,
+        requestPath: String? = null,
+): Failure {
     if (errorBody == null) {
         return Failure.Unknown(RuntimeException("errorBody should not be null"))
     }
@@ -92,7 +97,19 @@ private fun toFailure(errorBody: ResponseBody?, httpCode: Int, globalErrorReceiv
                     globalErrorReceiver?.handleGlobalError(GlobalError.ConsentNotGivenError(matrixError.consentUri))
                 }
                 httpCode == HttpURLConnection.HTTP_UNAUTHORIZED && /* 401 */
-                        matrixError.code == MatrixError.M_UNKNOWN_TOKEN -> {
+                        // M_USER_LOCKED is included so an account locked by an admin is understood as a
+                        // token error rather than every request failing forever with nothing shown to the user.
+                        (matrixError.code == MatrixError.M_UNKNOWN_TOKEN || matrixError.code == MatrixError.M_USER_LOCKED) -> {
+                    // Always logged, even when no receiver is listening: this single line names the endpoint
+                    // that reported the token error, which is the one thing needed to diagnose a logout after
+                    // the fact. It is written to the file logger, so it survives in the rageshake archive.
+                    Timber.e(
+                            "INVALID_TOKEN endpoint=%s errcode=%s soft_logout=%s escalated=%s",
+                            requestPath.orEmpty(),
+                            matrixError.code,
+                            matrixError.isSoftLogout,
+                            globalErrorReceiver != null
+                    )
                     globalErrorReceiver?.handleGlobalError(GlobalError.InvalidToken(matrixError.isSoftLogout.orFalse()))
                 }
                 matrixError.code == MatrixError.ORG_MATRIX_EXPIRED_ACCOUNT -> {

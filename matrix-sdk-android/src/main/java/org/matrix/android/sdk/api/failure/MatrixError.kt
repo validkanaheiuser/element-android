@@ -135,6 +135,12 @@ data class MatrixError(
         /** The user ID associated with the request has been deactivated. Typically for endpoints that prove authentication, such as /login. */
         const val M_USER_DEACTIVATED = "M_USER_DEACTIVATED"
 
+        /** The account has been locked by an administrator and cannot be used until it is unlocked. MSC3939. */
+        const val M_USER_LOCKED = "M_USER_LOCKED"
+
+        /** The account has been suspended by an administrator: it can read but not write. MSC3823. */
+        const val M_USER_SUSPENDED = "M_USER_SUSPENDED"
+
         /** Encountered when trying to register a user ID which is not valid. */
         const val M_INVALID_USERNAME = "M_INVALID_USERNAME"
 

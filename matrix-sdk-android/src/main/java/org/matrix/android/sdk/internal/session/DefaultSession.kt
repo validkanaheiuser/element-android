@@ -24,6 +24,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import org.matrix.android.sdk.api.MatrixCoroutineDispatchers
 import org.matrix.android.sdk.api.auth.data.SessionParams
+import org.matrix.android.sdk.api.extensions.tryOrNull
 import org.matrix.android.sdk.api.failure.GlobalError
 import org.matrix.android.sdk.api.federation.FederationService
 import org.matrix.android.sdk.api.session.EventStreamService
@@ -193,6 +194,15 @@ internal class DefaultSession @Inject constructor(
     override fun onGlobalError(globalError: GlobalError) {
         dispatchTo(sessionListeners) { session, listener ->
             listener.onGlobalError(session, globalError)
+        }
+    }
+
+    override fun onInvalidTokenDismissed() {
+        if (!sessionState.isOpen) return
+        // SyncThread sets isStarted = false and isTokenValid = false as soon as it sees a token error and
+        // then parks itself. Since we decided not to sign the user out, restart it so syncing resumes.
+        tryOrNull("Unable to restart sync after dismissing a token error") {
+            syncService().startSync(fromForeground = false)
         }
     }
 

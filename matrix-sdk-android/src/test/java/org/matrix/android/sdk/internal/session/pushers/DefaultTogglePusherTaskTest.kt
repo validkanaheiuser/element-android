@@ -22,7 +22,6 @@ import org.amshove.kluent.shouldBeEqualTo
 import org.junit.Test
 import org.matrix.android.sdk.internal.database.model.PusherEntity
 import org.matrix.android.sdk.internal.database.model.PusherEntityFields
-import org.matrix.android.sdk.test.fakes.FakeGlobalErrorReceiver
 import org.matrix.android.sdk.test.fakes.FakeMonarchy
 import org.matrix.android.sdk.test.fakes.FakePushersAPI
 import org.matrix.android.sdk.test.fakes.FakeRequestExecutor
@@ -37,9 +36,8 @@ class DefaultTogglePusherTaskTest {
     private val pushersAPI = FakePushersAPI()
     private val monarchy = FakeMonarchy()
     private val requestExecutor = FakeRequestExecutor()
-    private val globalErrorReceiver = FakeGlobalErrorReceiver()
 
-    private val togglePusherTask = DefaultTogglePusherTask(pushersAPI, monarchy.instance, requestExecutor, globalErrorReceiver)
+    private val togglePusherTask = DefaultTogglePusherTask(pushersAPI, monarchy.instance, requestExecutor)
 
     @Test
     fun `execution toggles enable on both local and remote`() = runTest {

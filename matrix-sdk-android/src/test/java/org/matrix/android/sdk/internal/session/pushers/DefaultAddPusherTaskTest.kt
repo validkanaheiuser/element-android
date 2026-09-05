@@ -24,7 +24,6 @@ import org.junit.Test
 import org.matrix.android.sdk.api.session.pushers.PusherState
 import org.matrix.android.sdk.internal.database.model.PusherEntity
 import org.matrix.android.sdk.internal.database.model.PusherEntityFields
-import org.matrix.android.sdk.test.fakes.FakeGlobalErrorReceiver
 import org.matrix.android.sdk.test.fakes.FakeMonarchy
 import org.matrix.android.sdk.test.fakes.FakePushersAPI
 import org.matrix.android.sdk.test.fakes.FakeRequestExecutor
@@ -52,7 +51,6 @@ class DefaultAddPusherTaskTest {
             pushersAPI = pushersAPI,
             monarchy = monarchy.instance,
             requestExecutor = FakeRequestExecutor(),
-            globalErrorReceiver = FakeGlobalErrorReceiver()
     )
 
     @Test

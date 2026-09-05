@@ -22,7 +22,6 @@ import org.matrix.android.sdk.internal.database.mapper.toEntity
 import org.matrix.android.sdk.internal.database.model.PusherEntity
 import org.matrix.android.sdk.internal.database.query.where
 import org.matrix.android.sdk.internal.di.SessionDatabase
-import org.matrix.android.sdk.internal.network.GlobalErrorReceiver
 import org.matrix.android.sdk.internal.network.RequestExecutor
 import org.matrix.android.sdk.internal.task.Task
 import org.matrix.android.sdk.internal.util.awaitTransaction
@@ -36,7 +35,6 @@ internal class DefaultAddPusherTask @Inject constructor(
         private val pushersAPI: PushersAPI,
         @SessionDatabase private val monarchy: Monarchy,
         private val requestExecutor: RequestExecutor,
-        private val globalErrorReceiver: GlobalErrorReceiver
 ) : AddPusherTask {
 
     override suspend fun execute(params: AddPusherTask.Params) {
@@ -54,7 +52,10 @@ internal class DefaultAddPusherTask @Inject constructor(
     }
 
     private suspend fun setPusher(pusher: JsonPusher) {
-        requestExecutor.executeRequest(globalErrorReceiver) {
+        // globalErrorReceiver is deliberately null: pusher maintenance runs headless (FCM token rotation,
+        // a UnifiedPush distributor unregistering, notification settings) and must never be able to sign the
+        // user out. A genuinely revoked token is still detected by /sync, which does escalate.
+        requestExecutor.executeRequest(null) {
             pushersAPI.setPusher(pusher)
         }
         monarchy.awaitTransaction { realm ->
