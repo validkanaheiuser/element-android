@@ -33,13 +33,18 @@ internal class SessionManager @Inject constructor(
 ) {
 
     // SessionId -> SessionComponent
+    // Mutated from the UI thread, from Dispatchers.IO during eager session init, from FCM/UnifiedPush
+    // delivery and from WorkManager threads. A plain HashMap here could hand out two SessionComponents
+    // for one session (so two SyncThreads long-polling with the same token), or lose an entry entirely.
     private val sessionComponents = HashMap<String, SessionComponent>()
 
+    @Synchronized
     fun getSessionComponent(sessionId: String): SessionComponent? {
         val sessionParams = sessionParamsStore.get(sessionId) ?: return null
         return getOrCreateSessionComponent(sessionParams)
     }
 
+    @Synchronized
     fun getLastSession(): Session? {
         val sessionParams = sessionParamsStore.getLast()
         return sessionParams?.let {
@@ -47,10 +52,12 @@ internal class SessionManager @Inject constructor(
         }
     }
 
+    @Synchronized
     fun getOrCreateSession(sessionParams: SessionParams): Session {
         return getOrCreateSessionComponent(sessionParams).session()
     }
 
+    @Synchronized
     fun releaseSession(sessionId: String) {
         if (sessionComponents.containsKey(sessionId).not()) {
             throw RuntimeException("You don't have a session for id $sessionId")
@@ -60,11 +67,13 @@ internal class SessionManager @Inject constructor(
         }
     }
 
+    @Synchronized
     fun stopSession(sessionId: String) {
         val sessionComponent = sessionComponents[sessionId] ?: throw RuntimeException("You don't have a session for id $sessionId")
         sessionComponent.session().syncService().stopSync()
     }
 
+    @Synchronized
     fun getOrCreateSessionComponent(sessionParams: SessionParams): SessionComponent {
         return sessionComponents.getOrPut(sessionParams.credentials.sessionId()) {
             DaggerSessionComponent

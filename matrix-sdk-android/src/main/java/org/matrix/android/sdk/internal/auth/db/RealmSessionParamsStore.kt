@@ -39,7 +39,7 @@ internal class RealmSessionParamsStore @Inject constructor(
             realm
                     .where(SessionParamsEntity::class.java)
                     .findAll()
-                    .map { mapper.map(it) }
+                    .mapNotNull { mapper.map(it) }
                     .lastOrNull()
         }
     }
@@ -50,7 +50,7 @@ internal class RealmSessionParamsStore @Inject constructor(
                     .where(SessionParamsEntity::class.java)
                     .equalTo(SessionParamsEntityFields.SESSION_ID, sessionId)
                     .findAll()
-                    .map { mapper.map(it) }
+                    .mapNotNull { mapper.map(it) }
                     .firstOrNull()
         }
     }
@@ -103,7 +103,7 @@ internal class RealmSessionParamsStore @Inject constructor(
                     .where(SessionParamsEntity::class.java)
                     .equalTo(SessionParamsEntityFields.SESSION_ID, newCredentials.sessionId())
                     .findAll()
-                    .map { mapper.map(it) }
+                    .mapNotNull { mapper.map(it) }
                     .firstOrNull()
 
             if (currentSessionParams == null) {

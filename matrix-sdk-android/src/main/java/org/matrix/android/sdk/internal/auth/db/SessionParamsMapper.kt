@@ -22,6 +22,7 @@ import org.matrix.android.sdk.api.auth.data.Credentials
 import org.matrix.android.sdk.api.auth.data.HomeServerConnectionConfig
 import org.matrix.android.sdk.api.auth.data.SessionParams
 import org.matrix.android.sdk.api.auth.data.sessionId
+import timber.log.Timber
 import javax.inject.Inject
 
 internal class SessionParamsMapper @Inject constructor(moshi: Moshi) {
@@ -36,6 +37,14 @@ internal class SessionParamsMapper @Inject constructor(moshi: Moshi) {
         val credentials = credentialsAdapter.fromJson(entity.credentialsJson)
         val homeServerConnectionConfig = homeServerConnectionConfigAdapter.fromJson(entity.homeServerConnectionConfigJson)
         if (credentials == null || homeServerConnectionConfig == null) {
+            // Returning null here used to be silent, and callers read it as "there is no session at all",
+            // which drops the user on the login screen with no trace of why. Never let that happen quietly.
+            Timber.e(
+                    "SessionParamsMapper: unmappable row sessionId=%s credentialsNull=%s homeServerConfigNull=%s",
+                    entity.sessionId,
+                    credentials == null,
+                    homeServerConnectionConfig == null
+            )
             return null
         }
         return SessionParams(credentials, homeServerConnectionConfig, entity.isTokenValid, LoginType.fromName(entity.loginType))

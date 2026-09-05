@@ -187,6 +187,23 @@ class SecretStoringUtils @Inject constructor(
         return cipher
     }
 
+    /**
+     * Returns the existing key for [alias], and never creates one.
+     *
+     * Decryption must never fall back to generating a key: [KeyStore.getEntry] can return null for a
+     * transient reason (keystore daemon restart, user storage still locked, an OEM keystore hiccup) and
+     * generating into the same alias overwrites it for good, permanently destroying the ability to read
+     * everything that was encrypted with it - including the Realm encryption keys that hold the session.
+     * Failing loudly here is recoverable; silently replacing the key is not.
+     */
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun getExistingSymmetricKeyForAliasM(alias: String): SecretKey {
+        return (keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.secretKey
+                ?: throw KeyStoreException(
+                        "No AndroidKeyStore entry for alias $alias. Refusing to generate a replacement on the decrypt path."
+                )
+    }
+
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getOrGenerateSymmetricKeyForAliasM(alias: String): SecretKey {
         val secretKeyEntry = (keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry)
@@ -264,7 +281,7 @@ class SecretStoringUtils @Inject constructor(
     private fun decryptBytesM(inputStream: InputStream, keyAlias: String): ByteArray {
         val (iv, encryptedText) = formatMExtract(inputStream)
 
-        val secretKey = getOrGenerateSymmetricKeyForAliasM(keyAlias)
+        val secretKey = getExistingSymmetricKeyForAliasM(keyAlias)
 
         val cipher = Cipher.getInstance(AES_MODE)
         val spec = GCMParameterSpec(128, iv)
@@ -351,7 +368,7 @@ class SecretStoringUtils @Inject constructor(
     @RequiresApi(Build.VERSION_CODES.M)
     @Throws(IOException::class)
     private fun <T> loadSecureObjectM(keyAlias: String, inputStream: InputStream): T? {
-        val secretKey = getOrGenerateSymmetricKeyForAliasM(keyAlias)
+        val secretKey = getExistingSymmetricKeyForAliasM(keyAlias)
 
         val ivSize = inputStream.read()
         val iv = ByteArray(ivSize)
