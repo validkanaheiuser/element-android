@@ -67,24 +67,51 @@ jobs:
           cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
       - name: Assemble GPlay unsigned apk
         run: ./gradlew clean assembleGplayRelease $CI_GRADLE_ARG_PROPERTIES
-      - name: Generate test signing key
+      # The release signing key MUST be stable across runs. Android refuses to install an update signed with a
+      # different certificate, so a key generated per build forces every user to uninstall the app to update -
+      # which deletes their session, their crypto keys and their message history. Generate the key ONCE:
+      #   keytool -genkeypair -v -keystore release.jks -alias release -keyalg RSA -keysize 4096 -validity 10000
+      # back it up somewhere safe, then add these repository secrets (Settings > Secrets and variables > Actions):
+      #   RELEASE_KEYSTORE_BASE64    output of: base64 -w0 release.jks
+      #   RELEASE_KEYSTORE_PASSWORD  the -storepass you chose
+      #   RELEASE_KEY_ALIAS          the -alias you chose (release)
+      #   RELEASE_KEY_PASSWORD       the -keypass you chose
+      - name: Restore release signing key
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
-          keytool -genkey -v -keystore /tmp/release.jks \
-            -alias release -keyalg RSA -keysize 2048 -validity 365 \
-            -dname "CN=ElementTest" -storepass testpass -keypass testpass -noprompt
+          if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then
+            echo "::error::RELEASE_KEYSTORE_BASE64 is not set. Refusing to sign with a throwaway key: every"
+            echo "::error::build would get a different certificate, so users could not update without"
+            echo "::error::uninstalling first, which destroys their session. See the comment above this step."
+            exit 1
+          fi
+          echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > /tmp/release.jks
 
       - name: Sign release APK
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name "apksigner" -type f | sort -rV | head -1)
           find vector-app/build/outputs/apk/gplay/release -name "*.apk" | while read apk; do
             "$APKSIGNER" sign \
               --ks /tmp/release.jks \
-              --ks-key-alias release \
-              --ks-pass pass:testpass \
-              --key-pass pass:testpass \
+              --ks-key-alias "$RELEASE_KEY_ALIAS" \
+              --ks-pass "env:RELEASE_KEYSTORE_PASSWORD" \
+              --key-pass "env:RELEASE_KEY_PASSWORD" \
               "$apk"
             echo "Signed: $apk"
           done
+          # The certificate digest must be identical on every run. If it ever changes, users cannot update
+          # in place any more and the key handling above has gone wrong.
+          FIRST_APK=$(find vector-app/build/outputs/apk/gplay/release -name "*.apk" | head -1)
+          "$APKSIGNER" verify --print-certs "$FIRST_APK" | grep -i "SHA-256 digest"
+
+      - name: Remove the signing key from the runner
+        if: always()
+        run: rm -f /tmp/release.jks
 
       - name: Collect signed APKs
         run: |
