@@ -25,6 +25,7 @@ import android.security.KeyPairGeneratorSpec
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.annotation.RequiresApi
+import org.matrix.android.sdk.api.extensions.tryOrNull
 import org.matrix.android.sdk.api.util.BuildVersionSdkIntProvider
 import timber.log.Timber
 import java.io.ByteArrayInputStream
@@ -198,10 +199,26 @@ class SecretStoringUtils @Inject constructor(
      */
     @RequiresApi(Build.VERSION_CODES.M)
     private fun getExistingSymmetricKeyForAliasM(alias: String): SecretKey {
-        return (keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.secretKey
+        readSymmetricKeyForAliasM(alias)?.let { return it }
+
+        // A miss is not always real. getEntry can come back empty while the keystore daemon is restarting,
+        // or in a process woken by a push before user storage is fully available. Reload the KeyStore and
+        // look once more before giving up: the alternative - generating a replacement - would destroy
+        // everything encrypted under this alias for good.
+        Timber.w("Keystore miss for alias $alias on the decrypt path, reloading and retrying once")
+        tryOrNull("Unable to reload the keystore") { keyStore.load(null) }
+
+        return readSymmetricKeyForAliasM(alias)
                 ?: throw KeyStoreException(
                         "No AndroidKeyStore entry for alias $alias. Refusing to generate a replacement on the decrypt path."
                 )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private fun readSymmetricKeyForAliasM(alias: String): SecretKey? {
+        return tryOrNull("Keystore lookup failed for alias $alias") {
+            (keyStore.getEntry(alias, null) as? KeyStore.SecretKeyEntry)?.secretKey
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.M)

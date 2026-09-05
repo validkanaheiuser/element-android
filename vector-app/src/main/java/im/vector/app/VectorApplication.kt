@@ -39,6 +39,7 @@ import dagger.hilt.android.HiltAndroidApp
 import im.vector.app.config.Config
 import im.vector.app.core.debug.LeakDetector
 import im.vector.app.core.di.ActiveSessionHolder
+import im.vector.app.core.log.DiagnosticLogTree
 import im.vector.app.core.pushers.FcmHelper
 import im.vector.app.core.resources.BuildMeta
 import im.vector.app.features.analytics.DecryptionFailureTracker
@@ -139,6 +140,9 @@ class VectorApplication :
 
         if (buildMeta.isDebug) {
             Timber.plant(Timber.DebugTree())
+        } else {
+            // Keep the push path readable with `adb logcat -s SYNC/Push:V` on release builds too.
+            Timber.plant(DiagnosticLogTree())
         }
         Timber.plant(vectorFileLogger)
 
