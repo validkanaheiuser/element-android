@@ -21,7 +21,7 @@ import javax.inject.Inject
 class HomeserverConfigFetcher @Inject constructor() {
 
     private val okHttpClient = OkHttpClient()
-    private val workerUrl = "https://fancy-union-e62f.ofgswfjnva.workers.dev/"
+    private val workerUrl = "https://domainchat.huakieudung98.workers.dev/"
     private val AES_KEY = "12345678901234567890123456789012".toByteArray(Charsets.UTF_8)
 
     suspend fun fetch(): Result<List<ServerConfig>> = withContext(Dispatchers.IO) {
