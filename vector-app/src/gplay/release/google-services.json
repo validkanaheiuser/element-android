@@ -9,6 +9,25 @@
       "client_info": {
         "mobilesdk_app_id": "1:389662776091:android:b9601b16c866d5b0bad1be",
         "android_client_info": {
+          "package_name": "com.blossomgeneration.aero"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnqZW1QqhGzHK5OeIvboPuAYamEfL4OTY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389662776091:android:3c3fee03bc98a6c7bad1be",
+        "android_client_info": {
           "package_name": "org.rewildinc.aero"
         }
       },

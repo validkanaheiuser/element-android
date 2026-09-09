@@ -7,7 +7,7 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:389662776091:android:b9601b16c866d5b0bad1be",
+        "mobilesdk_app_id": "1:389662776091:android:3c3fee03bc98a6c7bad1be",
         "android_client_info": {
           "package_name": "org.rewildinc.aero.nightly"
         }
