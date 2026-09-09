@@ -2,6 +2,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+    Installing an APK from inside the app is an F-Droid / nightly only feature, and Google Play
+    restricts REQUEST_INSTALL_PACKAGES to app stores, file managers and browsers. Remove it from
+    the Play build so the release does not require a Sensitive app permission declaration.
+    -->
+    <uses-permission
+        android:name="android.permission.REQUEST_INSTALL_PACKAGES"
+        tools:node="remove" />
+
+    <!--
+    jitsi-meet-sdk pulls in react-native-calendar-events, which declares the calendar permissions
+    for the Jitsi app's own "upcoming meetings" tab. Aero never surfaces that screen, so the
+    permissions would only show up on the Play listing as unexplained Calendar access.
+    -->
+    <uses-permission
+        android:name="android.permission.READ_CALENDAR"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.WRITE_CALENDAR"
+        tools:node="remove" />
+
     <application>
 
         <!-- Firebase components -->
