@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:389662776091:android:b9601b16c866d5b0bad1be",
         "android_client_info": {
-          "package_name": "com.blossomgeneration.aero.nightly"
+          "package_name": "org.rewildinc.aero.nightly"
         }
       },
       "oauth_client": [],

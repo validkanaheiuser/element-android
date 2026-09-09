@@ -143,7 +143,7 @@ android {
     compileSdk versions.compileSdk
 
     defaultConfig {
-        applicationId "com.blossomgeneration.aero"
+        applicationId "org.rewildinc.aero"
         // Set to API 21: see #405
         minSdk versions.minSdk
         targetSdk versions.targetSdk
